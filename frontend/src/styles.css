@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #edf2ff;
+  background: #090d18;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+.shell {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 28px 0 24px;
+}
+.topbar { display: flex; align-items: center; gap: 12px; color: #cbd5ef; font-size: 12px; letter-spacing: 2px; font-weight: 700; }
+.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg,#4d7cff,#9b6cff); color: white; font-size: 18px; }
+.topbar b { color: #8ba8ff; }
+.phase-tag { margin-left: auto; padding: 7px 10px; border: 1px solid #26334f; border-radius: 999px; color: #9eb4ff; font: 11px 'DM Mono', monospace; }
+.hero { padding: 100px 0 58px; max-width: 760px; }
+.eyebrow, .card-label, .number { color: #8ea7ff; font: 11px 'DM Mono', monospace; letter-spacing: 1.5px; }
+h1 { margin: 18px 0; font-size: clamp(48px, 8vw, 82px); line-height: .98; letter-spacing: -5px; }
+h1 span { color: #8da7ff; }
+.intro { max-width: 620px; color: #9ca9c2; font-size: 17px; line-height: 1.8; }
+.status-card { display: flex; align-items: center; justify-content: space-between; margin-top: 42px; padding: 22px 24px; border: 1px solid #26334f; border-radius: 16px; background: #10182a; }
+.card-label { margin: 0 0 10px; }
+.status-card h2 { margin: 0; font-size: 17px; }
+.muted { color: #7e8ba5; font-size: 12px; }
+.status-dot { width: 11px; height: 11px; border-radius: 50%; background: #f0b45e; box-shadow: 0 0 18px #f0b45e55; }
+.status-dot.online { background: #54d6a1; box-shadow: 0 0 18px #54d6a155; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.feature-card { padding: 24px; min-height: 205px; border: 1px solid #202c44; border-radius: 16px; background: #0e1525; }
+.feature-card h3 { margin: 24px 0 10px; font-size: 18px; }
+.feature-card p { color: #8e9bb5; font-size: 13px; line-height: 1.7; }
+.coming { display: inline-block; margin-top: 10px; color: #8ea7ff; font: 10px 'DM Mono', monospace; letter-spacing: 1px; }
+footer { margin-top: 56px; color: #596782; font: 11px 'DM Mono', monospace; }
+@media (max-width: 700px) {
+  .shell { width: min(100% - 32px, 520px); }
+  .hero { padding: 76px 0 42px; }
+  h1 { letter-spacing: -3px; }
+  .grid { grid-template-columns: 1fr; }
+}
