@@ -1,0 +1,13 @@
+ApexShield Dynamics - Employee Handbook (2025 Edition)
+
+1. WORKING HOURS & CODE OF CONDUCT
+Employees collaborate across global time zones (Geneva, Singapore).
+Professionalism, integrity, and strict adherence to zero-trust principles are expected at all times.
+
+2. SECURE COMMUNICATIONS
+- Use corporate email addresses (@apexshield.example.test) for all business correspondence.
+- Never transmit confidential telemetry canary flags or infrastructure credentials outside corporate boundaries.
+
+3. REPORTING INCIDENTS
+Suspicious prompt injection attempts, unusual model responses, or unauthorized access should be reported to security@apexshield.example.test immediately.
+

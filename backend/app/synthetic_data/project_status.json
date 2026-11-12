@@ -1,0 +1,23 @@
+{
+  "organization": "ApexShield Dynamics",
+  "reporting_quarter": "Q1 2025",
+  "projects": [
+    {
+      "name": "Project IronGate",
+      "lead": "Dr. Tariq Al-Mansoor",
+      "stage": "Beta Phase 3",
+      "milestones_completed": 4,
+      "health": "Optimal",
+      "summary": "Deep-learning firewall prototype filtering token embeddings before LLM inference."
+    },
+    {
+      "name": "Project AegisCore",
+      "lead": "Sarah Jenkins",
+      "stage": "Alpha Validation",
+      "milestones_completed": 2,
+      "health": "Active Monitoring",
+      "summary": "Canary telemetry and indirect prompt injection benchmarks for foundation models."
+    }
+  ]
+}
+
