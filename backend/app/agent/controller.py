@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session
 from app.agent.planner import AgentPlan, AgentPlanner, ToolCallPlan
 from app.agent.schemas import ToolApprovalSchema, ToolExecutionSchema
 from app.database.models import AgentMessage, AgentSession, ToolApproval, ToolExecution
+from app.security.agent_security_pipeline import AgentSecurityPipeline
 from app.security.approval import ApprovalManager
+from app.security.identity_guard import IdentityGuard
 from app.security.permissions import PermissionDecision, PermissionManager
 from app.tools.registry import tool_registry
 
@@ -42,6 +44,39 @@ class AgentController:
         )
         db.add(user_msg)
         db.commit()
+
+        # Inbound Agent Guardrail check (ASI01, ASI03, ASI05, ASI06)
+        turn_insp = AgentSecurityPipeline.inspect_agent_turn(
+            prompt=user_prompt,
+            role=role,
+            stage="POST_MITIGATION",
+            provider=self.provider,
+            model=self.model,
+            session_id=session.id,
+            db=db,
+        )
+        if turn_insp.is_blocked:
+            refusal_text = turn_insp.refusal_response or "Security Policy Violation: Agent turn blocked."
+            asst_msg = AgentMessage(
+                session_id=session.id,
+                role="assistant",
+                content=refusal_text,
+                created_at=datetime.now(timezone.utc),
+            )
+            db.add(asst_msg)
+            session.updated_at = datetime.now(timezone.utc)
+            db.commit()
+
+            return {
+                "session_id": session.id,
+                "provider": session.provider,
+                "model": session.model,
+                "execution_mode": "mock",
+                "tool_calls": [],
+                "pending_approval": None,
+                "final_response": refusal_text,
+                "status": "blocked",
+            }
 
         # 2. Plan tool requirements
         plan = await self.planner.plan(prompt=user_prompt, role=role)
@@ -95,6 +130,126 @@ class AgentController:
                 db.add(exec_record)
                 db.commit()
                 continue
+
+            # Agent Security Guardrail Check (ASI02, ASI03, ASI05)
+            tool_guard = AgentSecurityPipeline.validate_tool_dispatch(
+                tool_name=tool.name,
+                arguments=tool_call.arguments,
+                role=role,
+                is_already_approved=False,
+                stage="POST_MITIGATION",
+                provider=self.provider,
+                model=self.model,
+                session_id=session.id,
+                db=db,
+            )
+            if not tool_guard.is_allowed:
+                if tool_guard.decision == "REQUIRES_APPROVAL":
+                    exec_id = str(uuid.uuid4())
+                    exec_record = ToolExecution(
+                        id=exec_id,
+                        session_id=session.id,
+                        tool_name=tool.name,
+                        tool_arguments=json.dumps(tool_call.arguments),
+                        result=None,
+                        status="pending_approval",
+                        permission_decision="requires_approval",
+                        execution_time_ms=0.0,
+                        created_at=datetime.now(timezone.utc),
+                    )
+                    db.add(exec_record)
+                    db.commit()
+
+                    approval = ApprovalManager.create_approval_request(
+                        db=db,
+                        tool_execution_id=exec_id,
+                        tool_name=tool.name,
+                        arguments=tool_call.arguments,
+                    )
+
+                    pending_approval_schema = ToolApprovalSchema(
+                        id=approval.id,
+                        tool_execution_id=exec_id,
+                        tool_name=tool.name,
+                        tool_arguments=tool_call.arguments,
+                        status=approval.status,
+                        decision_reason=approval.decision_reason,
+                        created_at=approval.created_at.isoformat(),
+                        decided_at=approval.decided_at.isoformat() if approval.decided_at else None,
+                    )
+
+                    tool_schema = ToolExecutionSchema(
+                        id=exec_id,
+                        session_id=session.id,
+                        tool_name=tool.name,
+                        tool_arguments=tool_call.arguments,
+                        result=None,
+                        status="pending_approval",
+                        permission_decision="requires_approval",
+                        execution_time_ms=0.0,
+                        created_at=exec_record.created_at.isoformat(),
+                    )
+                    executed_tool_schemas.append(tool_schema)
+
+                    final_response_text = (
+                        f"ACTION PAUSED FOR APPROVAL:\n"
+                        f"The agent planned to execute sensitive tool '{tool.name}' with arguments: "
+                        f"{json.dumps(tool_call.arguments)}. "
+                        f"Reason: {tool_guard.reason}\n"
+                        f"Please approve or deny this operation to proceed."
+                    )
+                    overall_status = "pending_approval"
+
+                    asst_msg = AgentMessage(
+                        session_id=session.id,
+                        role="assistant",
+                        content=final_response_text,
+                        created_at=datetime.now(timezone.utc),
+                    )
+                    db.add(asst_msg)
+                    db.commit()
+                    break
+                else:  # BLOCKED
+                    exec_id = str(uuid.uuid4())
+                    exec_record = ToolExecution(
+                        id=exec_id,
+                        session_id=session.id,
+                        tool_name=tool.name,
+                        tool_arguments=json.dumps(tool_call.arguments),
+                        result=json.dumps({"error": f"Security Policy Violation: {tool_guard.reason}", "denied": True}),
+                        status="blocked",
+                        permission_decision="denied",
+                        execution_time_ms=0.0,
+                        created_at=datetime.now(timezone.utc),
+                    )
+                    db.add(exec_record)
+                    db.commit()
+
+                    tool_schema = ToolExecutionSchema(
+                        id=exec_id,
+                        session_id=session.id,
+                        tool_name=tool.name,
+                        tool_arguments=tool_call.arguments,
+                        result={"error": f"Security Policy Violation: {tool_guard.reason}", "denied": True},
+                        status="blocked",
+                        permission_decision="denied",
+                        execution_time_ms=0.0,
+                        created_at=exec_record.created_at.isoformat(),
+                    )
+                    executed_tool_schemas.append(tool_schema)
+
+                    final_response_text = f"Security Policy Violation: {tool_guard.reason}"
+                    overall_status = "completed"
+
+                    asst_msg = AgentMessage(
+                        session_id=session.id,
+                        role="assistant",
+                        content=final_response_text,
+                        created_at=datetime.now(timezone.utc),
+                    )
+                    db.add(asst_msg)
+                    db.commit()
+                    break
 
             # Permission Check
             perm_result = PermissionManager.evaluate_tool_permission(
@@ -293,6 +448,10 @@ class AgentController:
 
         # Mark approval as approved in DB
         ApprovalManager.approve_action(db, approval_id)
+
+        # Verify approval integrity with IdentityGuard (ASI03)
+        if not IdentityGuard.verify_approval_record_match(db, approval_id=approval_id, expected_tool=approval.tool_name):
+            raise ValueError(f"Approval verification failed for approval ID '{approval_id}'.")
 
         # Get the associated execution
         stmt = db.query(ToolExecution).filter(ToolExecution.id == approval.tool_execution_id)

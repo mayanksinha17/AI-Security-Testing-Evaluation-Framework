@@ -35,6 +35,13 @@ class AgentService:
         if session_id:
             session = db.query(AgentSession).filter(AgentSession.id == session_id).first()
             if session:
+                if role:
+                    session.role = role.lower()
+                if provider:
+                    session.provider = provider.lower()
+                if model:
+                    session.model = model
+                db.commit()
                 return session
 
         # Resolve model name

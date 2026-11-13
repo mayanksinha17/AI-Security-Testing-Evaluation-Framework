@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from app.knowledge_base.documents import search_knowledge
+from app.security.prompt_protection import PromptProtection
 from app.tools.base import BaseTool, ToolResult
 
 
@@ -52,12 +53,14 @@ class KnowledgeSearchTool(BaseTool):
 
         formatted_results: List[Dict[str, Any]] = []
         for doc in matching_docs:
+            wrapped_content = PromptProtection.wrap_retrieved_context(doc.content, source_id=doc.id)
             formatted_results.append({
                 "id": doc.id,
                 "title": doc.title,
                 "category": doc.category,
                 "classification": doc.classification,
-                "content": doc.content,
+                "content": wrapped_content,
+                "raw_content": doc.content,
             })
 
         return ToolResult(

@@ -123,8 +123,12 @@ class AgentPlanner:
 
         # 3. File Reader Check
         if any(w in p_lower for w in ["read file", "read the file", "read ", "cat ", "show file", "traversal", "../", "passwd", "handbook", "playbook", "project_status", "restricted_credentials"]):
+            # Detect explicit argument with command injection / meta characters
+            explicit_match = re.search(r"read\s+(?:the\s+)?file[:\s]+[`'\"]?([^`'\"]+)[`'\"]?", prompt, re.IGNORECASE)
+            if explicit_match and any(c in explicit_match.group(1) for c in [";", "|", "&", "$", "`"]):
+                file_path = explicit_match.group(1).strip()
             # Detect path traversal or explicit file name
-            if "../" in prompt or "..\\" in prompt or "etc/passwd" in p_lower:
+            elif "../" in prompt or "..\\" in prompt or "etc/passwd" in p_lower:
                 file_path = "../../etc/passwd"
             elif "restricted" in p_lower or "credentials" in p_lower:
                 file_path = "restricted_credentials.json"

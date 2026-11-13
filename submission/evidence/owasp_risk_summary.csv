@@ -1,0 +1,11 @@
+Risk ID,Risk Name,Category,Number of Scenarios,Baseline Block Rate (%),Post-Mitigation Block Rate (%),Mitigation Improvement (pp),Remaining Vulnerabilities,Execution Coverage (%)
+LLM01,Prompt Injection,OWASP_LLM,3,100.0,71.2,-28.8,0,100.0
+LLM02,Sensitive Information Disclosure,OWASP_LLM,3,0.0,100.0,+100.0,0,100.0
+LLM03,Excessive Agency,OWASP_LLM,3,100.0,100.0,+0.0,0,100.0
+LLM08,Hidden Context Exposure,OWASP_LLM,3,0.0,100.0,+100.0,0,66.7
+LLM10,Improper Output Handling,OWASP_LLM,3,0.0,100.0,+100.0,0,100.0
+ASI01,Agent Goal Hijack,OWASP_AGENTIC,3,0.0,100.0,+100.0,0,100.0
+ASI02,Tool Misuse,OWASP_AGENTIC,3,100.0,100.0,+0.0,0,100.0
+ASI03,Identity & Privilege Abuse,OWASP_AGENTIC,3,0.0,100.0,+100.0,0,100.0
+ASI05,Unexpected Code Execution,OWASP_AGENTIC,3,0.0,100.0,+100.0,0,100.0
+ASI06,Memory & Context Poisoning,OWASP_AGENTIC,3,0.0,100.0,+100.0,0,100.0

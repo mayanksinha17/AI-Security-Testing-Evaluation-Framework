@@ -39,6 +39,10 @@ def validate_file_path(base_dir: Path, requested_path: str, allowed_extensions: 
     if ".." in cleaned_path or cleaned_path.startswith("/") or cleaned_path.startswith("\\"):
         raise SecurityValidationError(f"Path traversal sequence detected in '{requested_path}'. Access denied.")
 
+    # Reject command injection characters in file path
+    if any(c in cleaned_path for c in [";", "|", "&", "`", "$"]):
+        raise SecurityValidationError(f"Command injection characters detected in path '{requested_path}'. Access denied.")
+
     base_dir_resolved = base_dir.resolve()
     candidate_resolved = (base_dir_resolved / cleaned_path).resolve()
 

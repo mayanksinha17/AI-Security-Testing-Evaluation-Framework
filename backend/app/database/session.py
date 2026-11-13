@@ -48,3 +48,20 @@ def init_db() -> None:
                 """
             )
         )
+
+        # Migrate security_audit_logs columns safely if missing
+        try:
+            table_info = conn.execute(text("PRAGMA table_info(security_audit_logs);")).fetchall()
+            existing_cols = {row[1] for row in table_info}
+            audit_cols = [
+                ("security_component", "TEXT DEFAULT 'SecurityPipeline'"),
+                ("tool_name", "TEXT DEFAULT 'N/A'"),
+                ("execution_stage", "TEXT DEFAULT 'POST_MITIGATION'"),
+                ("execution_status", "TEXT DEFAULT 'BLOCKED'"),
+                ("authorization_decision", "TEXT DEFAULT 'BLOCKED'"),
+            ]
+            for col_name, col_def in audit_cols:
+                if col_name not in existing_cols:
+                    conn.execute(text(f"ALTER TABLE security_audit_logs ADD COLUMN {col_name} {col_def};"))
+        except Exception:
+            pass

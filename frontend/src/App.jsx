@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import AgentLab from "./AgentLab";
+import AttackLab from "./AttackLab";
+import EvaluationDashboard from "./EvaluationDashboard";
+import SecurityDashboard from "./SecurityDashboard";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
@@ -11,8 +14,9 @@ const QUICK_STARTERS = [
 ];
 
 export default function App() {
-  // Navigation
-  const [currentTab, setCurrentTab] = useState("agent"); // "agent" | "chatbot"
+  // Navigation (URL param support for direct routing)
+  const initialTab = new URLSearchParams(window.location.search).get("tab") || "dashboard";
+  const [currentTab, setCurrentTab] = useState(initialTab); // "dashboard" | "evaluation" | "attack" | "agent" | "chatbot"
 
   // Chatbot State
   const [models, setModels] = useState([]);
@@ -230,13 +234,40 @@ export default function App() {
           {/* Navigation Mode Pill */}
           <div className="nav-tabs-pill">
             <button
+              className={`nav-tab-btn ${currentTab === "dashboard" ? "active" : ""}`}
+              onClick={() => {
+                setCurrentTab("dashboard");
+                setSidebarOpen(false);
+              }}
+            >
+              🛡️ SecOps Dashboard
+            </button>
+            <button
+              className={`nav-tab-btn ${currentTab === "evaluation" ? "active" : ""}`}
+              onClick={() => {
+                setCurrentTab("evaluation");
+                setSidebarOpen(false);
+              }}
+            >
+              📊 Evaluation
+            </button>
+            <button
+              className={`nav-tab-btn ${currentTab === "attack" ? "active" : ""}`}
+              onClick={() => {
+                setCurrentTab("attack");
+                setSidebarOpen(false);
+              }}
+            >
+              ⚔️ Attack Lab
+            </button>
+            <button
               className={`nav-tab-btn ${currentTab === "agent" ? "active" : ""}`}
               onClick={() => {
                 setCurrentTab("agent");
                 setSidebarOpen(false);
               }}
             >
-              🤖 Agent Lab
+              🤖 Agent
             </button>
             <button
               className={`nav-tab-btn ${currentTab === "chatbot" ? "active" : ""}`}
@@ -245,7 +276,7 @@ export default function App() {
                 setSidebarOpen(false);
               }}
             >
-              💬 Chatbot
+              💬 Chat
             </button>
           </div>
 
@@ -304,6 +335,12 @@ export default function App() {
 
           <div className="nav-tabs-pill" style={{ margin: 0 }}>
             <button
+              className={`nav-tab-btn ${currentTab === "attack" ? "active" : ""}`}
+              onClick={() => setCurrentTab("attack")}
+            >
+              🛡️ Attack Lab
+            </button>
+            <button
               className={`nav-tab-btn ${currentTab === "agent" ? "active" : ""}`}
               onClick={() => setCurrentTab("agent")}
             >
@@ -345,7 +382,11 @@ export default function App() {
 
           <div className="topbar-right">
             <span className="phase-pill">
-              {currentTab === "agent" ? "PHASE 03 · AGENTIC AI" : "PHASE 02 · MULTI-MODEL"}
+              {currentTab === "attack"
+                ? "PHASE 04 · ATTACK ENGINE"
+                : currentTab === "agent"
+                ? "PHASE 03 · AGENTIC AI"
+                : "PHASE 02 · MULTI-MODEL"}
             </span>
             <span className={`execution-pill ${selectedModel.execution_mode}`}>
               {selectedModel.execution_mode.toUpperCase()} MODE
@@ -354,7 +395,17 @@ export default function App() {
         </header>
 
         {/* View Switch */}
-        {currentTab === "agent" ? (
+        {currentTab === "dashboard" ? (
+          <SecurityDashboard
+            backendHealth={backendHealth}
+            models={models}
+            onNavigateTab={(tab) => setCurrentTab(tab)}
+          />
+        ) : currentTab === "evaluation" ? (
+          <EvaluationDashboard backendHealth={backendHealth} models={models} />
+        ) : currentTab === "attack" ? (
+          <AttackLab backendHealth={backendHealth} models={models} />
+        ) : currentTab === "agent" ? (
           <AgentLab backendHealth={backendHealth} models={models} />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", height: "calc(100% - 64px)", width: "100%" }}>

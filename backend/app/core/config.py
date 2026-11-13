@@ -1,4 +1,11 @@
+from pathlib import Path
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_CONFIG_FILE = Path(__file__).resolve()
+_PROJECT_ROOT = _CONFIG_FILE.parents[3]
+_DEFAULT_DB_PATH = _PROJECT_ROOT / "ai_security_poc.db"
+_DEFAULT_DB_URL = f"sqlite:///{_DEFAULT_DB_PATH.as_posix()}"
 
 
 class Settings(BaseSettings):
@@ -6,7 +13,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     api_host: str = "127.0.0.1"
     api_port: int = 8000
-    database_url: str = "sqlite:///./ai_security_poc.db"
+    database_url: str = _DEFAULT_DB_URL
     frontend_origin: str = "http://localhost:5173"
 
     # Phase 2: AI Provider Configuration
@@ -17,6 +24,26 @@ class Settings(BaseSettings):
     ai_provider_mode: str = "mock"  # "mock" or "live"
     request_timeout_seconds: float = 30.0
     max_message_length: int = 4000
+
+    # Phase 5: OWASP LLM Security Configuration
+    enable_prompt_injection_detection: bool = True
+    enable_sensitive_data_redaction: bool = True
+    enable_output_sanitization: bool = True
+    enable_tool_authorization_guard: bool = True
+    enable_security_audit_logging: bool = True
+    max_input_length: int = 4000
+    max_output_length: int = 8000
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def resolve_database_url(cls, v: str | None) -> str:
+        if not v or v in ("sqlite:///./ai_security_poc.db", "sqlite:///ai_security_poc.db"):
+            return _DEFAULT_DB_URL
+        if v.startswith("sqlite:///./"):
+            rel_path = v[len("sqlite:///./") :]
+            abs_path = (_PROJECT_ROOT / rel_path).resolve()
+            return f"sqlite:///{abs_path.as_posix()}"
+        return v
 
     @property
     def cors_origins(self) -> list[str]:

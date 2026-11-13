@@ -17,6 +17,8 @@ from app.core.config import settings
 from app.database.models import ChatMessage, ChatSession
 from app.providers.base import BaseLLMProvider, ProviderError
 from app.providers.provider_factory import get_provider
+from app.security.output_guard import OutputGuard
+from app.security.prompt_protection import PromptProtection
 
 SYSTEM_PROMPT = (
     "You are the AI Security Testing & Evaluation Assistant for ApexShield Dynamics. "
@@ -122,18 +124,22 @@ class ChatbotService:
         db.commit()
 
         # 5. Generate response from provider
+        secure_system_prompt = PromptProtection.build_secure_system_prompt(SYSTEM_PROMPT)
         provider_resp = await provider_instance.generate_response(
             prompt=request.message,
             history=history,
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=secure_system_prompt,
         )
 
-        # 6. Save assistant message to database
+        # 6. Sanitize assistant response
+        sanitized_content = OutputGuard.sanitize(provider_resp.content).sanitized_output
+
+        # 7. Save assistant message to database
         tokens = provider_resp.token_usage
         assistant_message_record = ChatMessage(
             session_id=session.id,
             role="assistant",
-            content=provider_resp.content,
+            content=sanitized_content,
             execution_mode=provider_resp.execution_mode,
             response_time_ms=provider_resp.response_time_ms,
             prompt_tokens=tokens.prompt_tokens if tokens else None,
@@ -158,7 +164,7 @@ class ChatbotService:
             provider=provider_resp.provider,
             model=provider_resp.model,
             user_message=request.message,
-            assistant_response=provider_resp.content,
+            assistant_response=sanitized_content,
             response_time_ms=provider_resp.response_time_ms,
             token_usage=token_usage_schema,
             execution_mode=provider_resp.execution_mode,

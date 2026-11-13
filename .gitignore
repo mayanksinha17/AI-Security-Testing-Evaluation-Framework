@@ -1,14 +1,52 @@
+# Environment & Credentials
 .env
+*.env
+credentials
+credentials.json
+token.json
+secrets.json
+
+# Virtual Environments
 .venv/
 venv/
+ENV/
+env/
+
+# Python Cache & Bytecode
 __pycache__/
 *.py[cod]
-.pytest_cache/
-.coverage
+*$py.class
+*.pyc
+
+# Node & Frontend Build
 node_modules/
 dist/
-.DS_Store
+frontend/dist/
+.npm
+.vite/
+
+# Database Files (Preserve in workspace, NEVER commit to git)
 *.db
+*.sqlite
 *.sqlite3
+ai_security_poc.db
+backend/ai_security_poc.db
+
+# Test & Coverage Artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs & Temporary Files
+*.log
+uvicorn_test.log
+uvicorn_err.log
+uv_out.txt
+uv_err.txt
+
+# Local Backups & Editor Configurations
+_backups/
+.DS_Store
 .idea/
 .vscode/
+*.swp
