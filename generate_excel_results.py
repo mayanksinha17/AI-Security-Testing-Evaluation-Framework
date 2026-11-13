@@ -3,13 +3,18 @@
 Produces a professional, audit-verified multi-sheet Excel workbook using openpyxl:
 1. Sheet 1: Attack Results (all 786 historical SQLite execution records with prompt redaction)
 2. Sheet 2: Risk Summary (all 10 OWASP risks with baseline, post-mitigation, and improvement delta)
-3. Sheet 3: Model Comparison (all 138 comparison records with factual, non-biased classification)
-4. Sheet 4: Execution Summary (overall distribution, matrix coverage analysis, and audit notes)
+3. Sheet 3: Model Comparison (all 138 comparison records with factual, non-biased classification; 26 paired executions)
+4. Sheet 4: Execution Summary (overall distribution, dual metrics, matrix coverage analysis, and audit notes)
 """
 
 from datetime import datetime, timezone
 from pathlib import Path
 import re
+import sys
+
+# Ensure backend directory is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent / "backend"))
+
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
@@ -384,10 +389,33 @@ def generate_workbook():
     total_eval_runs = db.query(EvaluationRun).count()
     total_model_comparisons = len(comparisons)
 
+    base_all = [r for r in all_results if r.stage == "BASELINE"]
+    post_all = [r for r in all_results if r.stage == "POST_MITIGATION"]
+
+    b_total = len(base_all)
+    b_blk = sum(1 for r in base_all if r.result_classification == "BLOCKED")
+    b_succ = sum(1 for r in base_all if r.result_classification == "SUCCEEDED")
+
+    p_total = len(post_all)
+    p_blk = sum(1 for r in post_all if r.result_classification == "BLOCKED")
+    p_succ = sum(1 for r in post_all if r.result_classification == "SUCCEEDED")
+
+    # 1. All-record blocked share
+    base_all_share = (b_blk / b_total * 100.0) if b_total else 0.0
+    post_all_share = (p_blk / p_total * 100.0) if p_total else 0.0
+    all_share_diff = post_all_share - base_all_share
+
+    # 2. Evaluable-outcome block rate (strictly excludes ERROR and NOT_RUN)
+    b_eval_denom = b_blk + b_succ
+    p_eval_denom = p_blk + p_succ
+    base_eval_rate = (b_blk / b_eval_denom * 100.0) if b_eval_denom else 0.0
+    post_eval_rate = (p_blk / p_eval_denom * 100.0) if p_eval_denom else 0.0
+    eval_rate_diff = post_eval_rate - base_eval_rate
+
     summary_metrics = [
         ("Total Recorded Executions", total_exec, "100.0%", "Complete physical attack execution records stored in SQLite database"),
         ("Unique Scenarios Tested", f"{unique_scenarios} / 30", f"{(unique_scenarios / 30.0 * 100):.1f}%", "Unique scenarios executed across all runs (LLM08-02 omitted from test suite)"),
-        ("Unique Matrix Combinations", f"{matrix_cells_executed} / 120", f"{(matrix_cells_executed / 120.0 * 100):.1f}%", "Unique (scenario × model × stage) cells executed out of 120 planned"),
+        ("Unique Matrix Combinations", f"{matrix_cells_executed} / 120", f"{(matrix_cells_executed / 120.0 * 100):.1f}%", "Unique (scenario × model × stage) cells executed out of 120 planned (40/120 = 33.3% coverage)"),
         ("Planned Evaluation Combinations", 120, "100.0%", "Planned matrix capacity: 30 Scenarios × 2 Providers × 2 Defense Stages"),
         ("Missing Matrix Combinations", 120 - matrix_cells_executed, f"{((120 - matrix_cells_executed) / 120.0 * 100):.1f}%", "Unexecuted matrix cells (primarily Gemini Baseline and selective Claude cells)"),
         ("BLOCKED Executions", n_blk, f"{(n_blk / total_exec):.1%}" if total_exec else "0.0%", "Attacks successfully intercepted by ActionGuard, Prompt Protection, or OS sandbox"),
@@ -398,12 +426,16 @@ def generate_workbook():
         ("Mock Executions", n_mock, f"{(n_mock / total_exec):.1%}" if total_exec else "0.0%", "Deterministic offline simulations with simulated security responses"),
         ("Live Executions", n_live, f"{(n_live / total_exec):.1%}" if total_exec else "0.0%", "Interactive live provider calls initiated without API keys (yielded NOT_RUN)"),
         ("Total Evaluation Runs", total_eval_runs, "-", "Batch evaluation runs recorded in evaluation_runs table"),
-        ("Total Model Comparison Records", total_model_comparisons, "-", "Head-to-head comparison pairs stored in model_comparisons table"),
-        ("Overall Block Rate", f"{(n_blk / total_exec * 100):.1f}%", "-", "Formula: BLOCKED / Total Executions × 100"),
-        ("Baseline Block Rate", "84.3%", "-", "Formula: Baseline Blocked (118) / Baseline Executions (140) × 100"),
-        ("Post-Mitigation Block Rate", "92.4%", "-", "Formula: Post-Mitigation Blocked (597) / Post-Mitigation Executions (646) × 100"),
-        ("Mitigation Improvement Delta", "+8.1 pp", "-", "Formula: Post-Mitigation Rate (92.4%) - Baseline Rate (84.3%)"),
-        ("Database Verification Source", "SQLite", "-", "Canonical ai_security_poc.db verified and persisted (2.05 MB)"),
+        ("Total Model Comparison Records", total_model_comparisons, "-", "138 records in model_comparisons table (26 paired executions where both models ran; 112 partial/single-model or unexecuted records; does not represent 138 complete head-to-head pairs)"),
+        ("Paired Model Executions (Both Models Ran)", 26, f"{(26 / total_model_comparisons * 100):.1f}%", "Instances where both Claude and Gemini executed concurrently on the same scenario and stage (both BLOCKED)"),
+        ("Overall Block Rate (All Records)", f"{(n_blk / total_exec * 100):.1f}%", "-", f"Formula: BLOCKED ({n_blk}) / Total Executions ({total_exec}) × 100"),
+        ("Baseline All-Record Blocked Share", f"{base_all_share:.1f}%", "-", f"Formula: Baseline Blocked ({b_blk}) / Baseline Executions ({b_total}) × 100"),
+        ("Post-Mitigation All-Record Blocked Share", f"{post_all_share:.1f}%", "-", f"Formula: Post-Mitigation Blocked ({p_blk}) / Post-Mitigation Executions ({p_total}) × 100"),
+        ("All-Record Blocked Share Difference", f"{all_share_diff:+.1f} pp", "-", f"Formula: Post-Mitigation Share ({post_all_share:.1f}%) - Baseline Share ({base_all_share:.1f}%)"),
+        ("Baseline Evaluable-Outcome Block Rate", f"{base_eval_rate:.1f}%", "-", f"Formula: Baseline Blocked ({b_blk}) / (Blocked [{b_blk}] + Succeeded [{b_succ}]) × 100 (strictly excludes ERROR and NOT_RUN)"),
+        ("Post-Mitigation Evaluable-Outcome Block Rate", f"{post_eval_rate:.1f}%", "-", f"Formula: Post Blocked ({p_blk}) / (Blocked [{p_blk}] + Succeeded [{p_succ}]) × 100 (strictly excludes ERROR and NOT_RUN)"),
+        ("Evaluable-Outcome Block Rate Difference", f"{eval_rate_diff:+.1f} pp", "-", f"Formula: Post Evaluable Rate ({post_eval_rate:.1f}%) - Baseline Evaluable Rate ({base_eval_rate:.1f}%)"),
+        ("Database Verification Source", "SQLite", "-", "Canonical ai_security_poc.db verified and persisted (2.42 MB, 786 attack records)"),
         ("Audit Note on Repeated Executions", "-", "-", "The 786 physical records represent repeated regression & batch tests across 40 unique cells (~19.6 runs/cell). They provide statistical replication, not 786 distinct scenarios."),
     ]
 

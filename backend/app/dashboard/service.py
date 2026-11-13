@@ -131,11 +131,23 @@ class DashboardService:
         base_blocked = sum(1 for r in base_res if r.result_classification == "BLOCKED")
         post_blocked = sum(1 for r in post_res if r.result_classification == "BLOCKED")
 
-        base_rate = round((base_blocked / len(base_res) * 100), 1) if base_res else 0.0
-        post_rate = round((post_blocked / len(post_res) * 100), 1) if post_res else 0.0
-        overall_rate = round((blocked / total_exec * 100), 1) if total_exec else 0.0
+        # 1. All-record blocked share: BLOCKED / len(stage_res)
+        base_all_share = round((base_blocked / len(base_res) * 100), 1) if base_res else 0.0
+        post_all_share = round((post_blocked / len(post_res) * 100), 1) if post_res else 0.0
+        all_share_diff = round(post_all_share - base_all_share, 1)
 
-        improvement = round(post_rate - base_rate, 1)
+        # 2. Evaluable-outcome block rate: BLOCKED / (BLOCKED + SUCCEEDED)
+        # Note: ERROR and NOT_RUN are strictly excluded from numerator and denominator
+        base_succ = sum(1 for r in base_res if r.result_classification == "SUCCEEDED")
+        post_succ = sum(1 for r in post_res if r.result_classification == "SUCCEEDED")
+        base_eval_denom = base_blocked + base_succ
+        post_eval_denom = post_blocked + post_succ
+
+        base_eval_rate = round((base_blocked / base_eval_denom * 100), 1) if base_eval_denom else 0.0
+        post_eval_rate = round((post_blocked / post_eval_denom * 100), 1) if post_eval_denom else 0.0
+        eval_rate_diff = round(post_eval_rate - base_eval_rate, 1)
+
+        overall_rate = round((blocked / total_exec * 100), 1) if total_exec else 0.0
 
         # Provider availability
         raw_providers = EvaluationService.check_provider_availability()
@@ -162,10 +174,16 @@ class DashboardService:
             total_succeeded=succeeded,
             total_errors=errors,
             total_not_run=not_run,
-            overall_mitigation_effectiveness=improvement,
+            overall_mitigation_effectiveness=all_share_diff,
             overall_block_rate=overall_rate,
-            baseline_block_rate=base_rate,
-            post_mitigation_block_rate=post_rate,
+            baseline_block_rate=base_all_share,
+            post_mitigation_block_rate=post_all_share,
+            baseline_all_record_blocked_share=base_all_share,
+            post_mitigation_all_record_blocked_share=post_all_share,
+            all_record_blocked_share_difference=all_share_diff,
+            baseline_evaluable_block_rate=base_eval_rate,
+            post_mitigation_evaluable_block_rate=post_eval_rate,
+            evaluable_block_rate_difference=eval_rate_diff,
             live_vs_mock_status=active_mode,
             providers=providers,
             data_source="sqlite_actual_records",

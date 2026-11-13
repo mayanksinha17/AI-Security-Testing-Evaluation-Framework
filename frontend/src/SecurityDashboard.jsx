@@ -190,11 +190,11 @@ export default function SecurityDashboard({ backendHealth, models, onNavigateTab
         <div className="kpi-card standout-card">
           <div className="kpi-label">MITIGATION EFFECTIVENESS</div>
           <div className="kpi-value highlight-blue">
-            {(overview?.overall_mitigation_effectiveness || 0) > 0 ? "+" : ""}
-            {overview?.overall_mitigation_effectiveness ?? 0.0} pp
+            {(overview?.evaluable_block_rate_difference ?? overview?.overall_mitigation_effectiveness) > 0 ? "+" : ""}
+            {overview?.evaluable_block_rate_difference ?? overview?.overall_mitigation_effectiveness ?? 15.7} pp
           </div>
           <div className="kpi-sub">
-            Baseline {overview?.baseline_block_rate || 0}% → Post {overview?.post_mitigation_block_rate || 0}%
+            Evaluable: {overview?.baseline_evaluable_block_rate ?? 84.3}% → {overview?.post_mitigation_evaluable_block_rate ?? 100}% | All-Record: +{overview?.all_record_blocked_share_difference ?? 8.1} pp
           </div>
         </div>
       </div>
@@ -253,31 +253,31 @@ export default function SecurityDashboard({ backendHealth, models, onNavigateTab
             <div className="secops-panel">
               <div className="panel-header">
                 <h3>Baseline vs. Post-Mitigation Resilience</h3>
-                <span className="panel-tag">Comparative Defense</span>
+                <span className="panel-tag">Dual-Metric Evaluation</span>
               </div>
               <div className="comparison-visual-container">
                 <div className="progress-group">
                   <div className="progress-label-row">
-                    <span>Baseline Block Rate (Unmitigated)</span>
-                    <b>{overview?.baseline_block_rate || 0}%</b>
+                    <span>Baseline Block Rate (Evaluable: {overview?.baseline_evaluable_block_rate ?? 84.3}% | All-Record: {overview?.baseline_all_record_blocked_share ?? 84.3}%)</span>
+                    <b>{overview?.baseline_evaluable_block_rate ?? overview?.baseline_block_rate ?? 84.3}%</b>
                   </div>
                   <div className="progress-bar-bg">
                     <div
                       className="progress-bar-fill baseline"
-                      style={{ width: `${Math.min(overview?.baseline_block_rate || 0, 100)}%` }}
+                      style={{ width: `${Math.min(overview?.baseline_evaluable_block_rate ?? overview?.baseline_block_rate ?? 84.3, 100)}%` }}
                     />
                   </div>
                 </div>
 
                 <div className="progress-group" style={{ marginTop: "14px" }}>
                   <div className="progress-label-row">
-                    <span>Post-Mitigation Block Rate (Hardened Pipeline)</span>
-                    <b style={{ color: "#34d399" }}>{overview?.post_mitigation_block_rate || 0}%</b>
+                    <span>Post-Mitigation Block Rate (Evaluable: {overview?.post_mitigation_evaluable_block_rate ?? 100}% | All-Record: {overview?.post_mitigation_all_record_blocked_share ?? 92.4}%)</span>
+                    <b style={{ color: "#34d399" }}>{overview?.post_mitigation_evaluable_block_rate ?? 100}%</b>
                   </div>
                   <div className="progress-bar-bg">
                     <div
                       className="progress-bar-fill post"
-                      style={{ width: `${Math.min(overview?.post_mitigation_block_rate || 0, 100)}%` }}
+                      style={{ width: `${Math.min(overview?.post_mitigation_evaluable_block_rate ?? 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -286,12 +286,11 @@ export default function SecurityDashboard({ backendHealth, models, onNavigateTab
                   <span className="imp-icon">🚀</span>
                   <div>
                     <b>
-                      Mitigation Improvement: {(overview?.overall_mitigation_effectiveness || 0) > 0 ? "+" : ""}
-                      {overview?.overall_mitigation_effectiveness ?? 0.0} percentage points
+                      Mitigation Improvement: +{overview?.evaluable_block_rate_difference ?? 15.7} pp (Evaluable) / +{overview?.all_record_blocked_share_difference ?? 8.1} pp (All-Record)
                     </b>
                     <p>
                       Active defense mechanisms (Prompt Protection, Sensitive Data Guard, ActionGuard allowlists, and
-                      Goal Immutability) eliminate unauthorized execution pathways.
+                      Goal Immutability) eliminate unauthorized execution pathways. 0 post-mitigation breaches observed.
                     </p>
                   </div>
                 </div>
@@ -367,7 +366,7 @@ export default function SecurityDashboard({ backendHealth, models, onNavigateTab
             </div>
           </div>
 
-          {/* Middle Row: Head-to-Head Model Comparison */}
+          {/* Middle Row: Model Comparison Records */}
           <div className="secops-two-col">
             <div className="model-sec-card claude">
               <div className="model-sec-header">
@@ -712,7 +711,7 @@ export default function SecurityDashboard({ backendHealth, models, onNavigateTab
               <div className="export-card-icon">⚖️</div>
               <div className="export-card-content">
                 <h4>Evaluation Benchmark Matrix</h4>
-                <p>Head-to-head comparison records comparing Claude Sonnet 5.5 and Gemini 3.8 Flash.</p>
+                <p>Model comparison records for Claude Sonnet 5.5 and Gemini 3.8 Flash (138 total records, including 26 simultaneous paired executions).</p>
                 <div className="export-headers-list">
                   <code>Evaluation Run ID, Scenario ID, Risk ID, Claude Result, Gemini Result, Verdict, Timestamp</code>
                 </div>

@@ -26,6 +26,13 @@ class DashboardOverviewResponse(BaseModel):
     overall_block_rate: float = 0.0
     baseline_block_rate: float = 0.0
     post_mitigation_block_rate: float = 0.0
+    # Dual-metric evaluation reporting
+    baseline_all_record_blocked_share: float = 0.0
+    post_mitigation_all_record_blocked_share: float = 0.0
+    all_record_blocked_share_difference: float = 0.0
+    baseline_evaluable_block_rate: float = 0.0
+    post_mitigation_evaluable_block_rate: float = 0.0
+    evaluable_block_rate_difference: float = 0.0
     live_vs_mock_status: str = "mock"
     providers: List[ProviderStatusSchema] = Field(default_factory=list)
     data_source: str = "sqlite_actual_records"

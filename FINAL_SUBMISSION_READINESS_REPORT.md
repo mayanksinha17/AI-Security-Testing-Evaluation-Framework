@@ -102,9 +102,14 @@ Empirical counts queried directly from the canonical SQLite database:
 | **NOT_RUN Executions** | **25** | 3.2% | Live requests without API keys (strictly excluded from blocked totals) |
 | **Mock Executions** | **761** | 96.8% | Offline deterministic security simulations |
 | **Live Executions** | **25** | 3.2% | Interactive live calls without credentials (yielded NOT_RUN) |
-| **Baseline Executions** | **140** | 17.8% | 118 BLOCKED, 22 SUCCEEDED $\to$ **84.3% Baseline Block Rate** |
-| **Post-Mitigation Executions** | **646** | 82.2% | 597 BLOCKED, 0 SUCCEEDED, 24 ERROR, 25 NOT_RUN $\to$ **92.4% Post Block Rate** |
-| **Net Mitigation Improvement Delta** | **+8.1 pp** | — | Formula: $92.4\% - 84.3\% = +8.1\text{ percentage points}$ |
+| **Baseline Executions** | **140** | 17.8% | 118 BLOCKED, 22 SUCCEEDED |
+| **Post-Mitigation Executions** | **646** | 82.2% | 597 BLOCKED, 0 SUCCEEDED, 24 ERROR, 25 NOT_RUN |
+| **Baseline All-Record Blocked Share** | **84.3%** | — | Formula: $\frac{118 \text{ BLOCKED}}{140 \text{ Total Baseline}} \times 100$ |
+| **Post-Mitigation All-Record Blocked Share** | **92.4%** | — | Formula: $\frac{597 \text{ BLOCKED}}{646 \text{ Total Post-Mitigation}} \times 100$ (includes 24 ERROR + 25 NOT_RUN) |
+| **All-Record Blocked Share Difference** | **+8.1 pp** | — | Formula: $92.4\% - 84.3\% = +8.1\text{ percentage points}$ |
+| **Baseline Evaluable-Outcome Block Rate** | **84.3%** | — | Formula: $\frac{118 \text{ BLOCKED}}{118 \text{ BLOCKED} + 22 \text{ SUCCEEDED}} \times 100$ (excludes ERROR & NOT_RUN) |
+| **Post-Mitigation Evaluable-Outcome Block Rate** | **100.0%** | — | Formula: $\frac{597 \text{ BLOCKED}}{597 \text{ BLOCKED} + 0 \text{ SUCCEEDED}} \times 100$ (excludes ERROR & NOT_RUN) |
+| **Evaluable-Outcome Block Rate Difference** | **+15.7 pp** | — | Formula: $100.0\% - 84.3\% = +15.7\text{ percentage points}$ |
 | **High-Risk Breach Containment** | **100.0%** | — | 0 post-mitigation breaches across all 10 OWASP risks |
 
 ---
@@ -129,14 +134,14 @@ $$30 \text{ Scenarios} \times 2 \text{ Model Providers} \times 2 \text{ Defense 
 
 ---
 
-## 7. Actual Model Comparison Findings
+## 7. Actual Model Comparison Findings (138 Comparison Records; 26 Paired Executions)
 
-Queried directly from all 138 rows in `model_comparisons`:
+The 138 records in `model_comparisons` represent comparison records rather than 138 complete simultaneous paired evaluations. Exactly **26 records** represent paired instances where both models actually executed (both BLOCKED under post-mitigation on LLM08-01 and LLM03-01). The remaining 112 records capture single-model executions or unexecuted tests where the counterpart was not executed:
 
 | Outcome Classification | Count | Share | Forensic Interpretation & Audit Finding |
 | :--- | :---: | :---: | :--- |
 | **Claude BLOCKED / Gemini NOT_RUN** | **70** | 50.7% | Claude evaluated under post-mitigation; Gemini was not executed in that batch run. |
-| **Both BLOCKED** | **26** | 18.8% | Both models executed simultaneously; both successfully contained by security pipeline. |
+| **Both BLOCKED (Paired Executions)** | **26** | 18.8% | Both models executed simultaneously; both successfully contained by security pipeline. |
 | **Gemini BLOCKED / Claude NOT_RUN** | **14** | 10.1% | Gemini evaluated under post-mitigation; Claude was not executed in that batch run. |
 | **Claude SUCCEEDED / Gemini NOT_RUN** | **14** | 10.1% | Claude executed in unmitigated baseline (vulnerable); Gemini was not executed. |
 | **Both NOT_RUN** | **14** | 10.1% | Interactive live calls without API keys; neither model executed. |
@@ -175,7 +180,7 @@ Queried directly from all 138 rows in `model_comparisons`:
 | **Attack Results** | **787 rows** | 13 columns | Execution ID, Risk ID, Category, Scenario ID, Model, Model ID, Stage, Redacted Prompt, Expected Behavior, Actual Result, Result, Execution Mode, Timestamp | **PASS** |
 | **Risk Summary** | **11 rows** | 11 columns | Risk ID, Risk Name, Scenarios, Baseline Execs, Baseline Blocked, Baseline Rate, Post Execs, Post Blocked, Post Rate, Improvement in pp, Audit Status Notes | **PASS** |
 | **Model Comparison** | **139 rows** | 9 columns | Scenario ID, Risk ID, Stage, Claude Result, Gemini Result, Claude Mode, Gemini Mode, Comparison Classification, Evaluation Run ID | **PASS** |
-| **Execution Summary** | **21 rows** | 4 columns | Classification / Metric, Total Count, Pct of Total, Operational Notes (covers planned capacity, unique cells, repeated runs explanation) | **PASS** |
+| **Execution Summary** | **25 rows** | 4 columns | Classification / Metric, Total Count, Pct of Total, Operational Notes (covers planned capacity, unique cells, dual metrics, repeated runs explanation) | **PASS** |
 
 - **Formatting:** Corporate typography (Segoe UI), navy/teal headers, frozen top panes (`A2`), auto-filters enabled on all sheets, sensible column widths, conditional styling for classifications. **Status: PASS.**
 
@@ -192,8 +197,8 @@ Queried directly from all 138 rows in `model_comparisons`:
   rendering chunks...
   dist/index.html                   0.54 kB │ gzip:  0.33 kB
   dist/assets/index-Q857I2Jq.css   49.30 kB │ gzip:  8.55 kB
-  dist/assets/index-BWxNgysb.js   311.13 kB │ gzip: 88.01 kB
-  ✓ built in 1.20s
+  dist/assets/index-DmuxXua9.js   311.87 kB │ gzip: 88.17 kB
+  ✓ built in 1.87s
   ```
 - **Errors / Warnings:** 0 errors, 0 warnings.
 - **Audit Status:** **PASS**.
@@ -246,17 +251,19 @@ In accordance with academic and engineering transparency:
 | 2 | Preservation of Historical Database Files | **PASS** | Both `ai_security_poc.db` (2.05 MB) and `backend/ai_security_poc.db` (0.32 MB) intact. |
 | 3 | Verification of 786 Physical Execution Records | **PASS** | 786 rows in `attack_results` verified 1:1 against Excel, CSV, and PDF. |
 | 4 | Verification of 40/120 Unique Matrix Cell Coverage | **PASS** | Empirically proved 40 unique cells, 80 missing cells, 29 tested scenarios. |
-| 5 | Elimination of Biased Model Comparison Claims | **PASS** | 138 pairs factually categorized (70 Claude BLOCKED / Gemini NOT_RUN, 26 Both BLOCKED). |
-| 6 | Mitigation Delta Calculation & Sign Correction | **PASS** | $\Delta = 92.4\% - 84.3\% = +8.1\text{ pp}$. UI hardcoded `+` sign bug fixed. |
-| 7 | Excel Results Workbook Generation | **PASS** | `AI_Security_Test_Results.xlsx` (4 sheets, 787 rows Sheet 1, verified formatting). |
+| 5 | Elimination of Biased Model Comparison Claims | **PASS** | 138 pairs factually categorized (26 Both BLOCKED paired executions; 112 single/unexecuted). |
+| 6 | Dual-Metric Resilience Calculation | **PASS** | Evaluable rate $\Delta = 100.0\% - 84.3\% = +15.7\text{ pp}$; All-record share $\Delta = 92.4\% - 84.3\% = +8.1\text{ pp}$. |
+| 7 | Excel Results Workbook Generation | **PASS** | `AI_Security_Test_Results.xlsx` (4 sheets, 787 rows Sheet 1, 25 rows Sheet 4 with dual metrics). |
 | 8 | PDF Evaluation Report Generation | **PASS** | `AI_Security_Testing_Evaluation_Report.pdf` (Strictly 10 pages verified). |
-| 9 | README.md Comprehensive 23-Section Rewrite | **PASS** | All 23 sections present with actual paths, startup commands, and GitHub URL. |
-| 10 | Frontend Production Build | **PASS** | `npm run build` completed in 1.20s with 0 errors. |
-| 11 | Secret and Credential Scanning | **PASS** | Zero credentials or real API keys exposed. `.env` and `.db` git-ignored. |
-| 12 | Git Staged-File Audit | **PASS** | 79 files committed; zero database binaries or virtual environments staged. |
-| 13 | GitHub Repository Release & Push | **PASS** | Pushed to `mayanksinha17/AI-Security-Testing-Evaluation-Framework` (`main`). |
-| 14 | Submission Package Consolidation | **PASS** | `submission/` contains PDF, Excel, evidence/, and `SUBMISSION_CHECKLIST.md`. |
+| 9 | README.md Comprehensive 23-Section Rewrite | **PASS** | All 23 sections present with dual metrics, 40/120 matrix disclosure, and comparison telemetry. |
+| 10 | Frontend Production Build | **PASS** | `npm run build` completed in 1.87s with 0 errors. |
+| 11 | Automated Regression Test Suite | **PASS** | `pytest tests/ -v`: 99 passed in 10.02s (100% green, 0 failures). |
+| 12 | Secret and Credential Scanning | **PASS** | Zero credentials or real API keys exposed. `.env` and `.db` git-ignored. |
+| 13 | Git Staged-File Audit | **PASS** | All files cleanly tracked; zero database binaries or virtual environments staged. |
+| 14 | GitHub Repository Release & Push | **PASS** | Pushed to `mayanksinha17/AI-Security-Testing-Evaluation-Framework` (`main`). |
+| 15 | Submission Package Consolidation | **PASS** | `submission/` contains PDF, Excel, evidence/, and `SUBMISSION_CHECKLIST.md`. |
 
 ---
 
 *Report prepared and certified by Kumar Mayank Sinha for formal submission to YGF NGO.*
+

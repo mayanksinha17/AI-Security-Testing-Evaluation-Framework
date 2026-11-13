@@ -236,7 +236,7 @@ export default function EvaluationDashboard({ backendHealth, models }) {
               className={`nav-tab-btn ${activeTab === "models" ? "active" : ""}`}
               onClick={() => setActiveTab("models")}
             >
-              ⚖️ Head-to-Head
+              ⚖️ Model Comparison
             </button>
             <button
               className={`nav-tab-btn ${activeTab === "scenarios" ? "active" : ""}`}
@@ -301,7 +301,7 @@ export default function EvaluationDashboard({ backendHealth, models }) {
         </div>
       </div>
 
-      {/* TAB 1: HEAD-TO-HEAD MODEL COMPARISON */}
+      {/* TAB 1: MODEL COMPARISON RECORDS */}
       {activeTab === "models" && (
         <div className="eval-tab-content">
           <div className="head-to-head-grid">

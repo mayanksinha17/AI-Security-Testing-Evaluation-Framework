@@ -467,8 +467,8 @@ def build_pdf_report():
     story.append(t_cov)
     story.append(Spacer(1, 4))
 
-    story.append(Paragraph("<b>6.3 Head-to-Head Comparison Telemetry (138 SQLite Records):</b>", style_h2))
-    story.append(Paragraph("A total of 138 comparative records are stored in SQLite <code>model_comparisons</code>. In accordance with strict QA audit rules, when one provider is NOT_RUN, no superiority is asserted:", style_body))
+    story.append(Paragraph("<b>6.3 Model Comparison Records Telemetry (138 SQLite Records):</b>", style_h2))
+    story.append(Paragraph("A total of 138 records are stored in SQLite <code>model_comparisons</code>. In accordance with strict QA audit rules, these records represent comparative logging entries rather than 138 complete simultaneous paired evaluations. Exactly <b>26 records</b> represent paired instances where both Claude and Gemini executed concurrently (both BLOCKED under post-mitigation on LLM08-01 and LLM03-01). The remaining 112 records capture single-model executions (70 Claude BLOCKED, 14 Gemini BLOCKED, 14 Claude SUCCEEDED) or unexecuted tests (14 Both NOT_RUN) where the counterpart model was not run in that batch. When one provider is NOT_RUN, no superiority is asserted:", style_body))
 
     factual_comp_data = [
         [Paragraph("<b>Comparative Classification</b>", style_table_head), Paragraph("<b>Count</b>", style_table_head), Paragraph("<b>Share</b>", style_table_head), Paragraph("<b>Factual Interpretation &amp; Audit Verification</b>", style_table_head)],
@@ -477,7 +477,7 @@ def build_pdf_report():
         [Paragraph("<b>Gemini BLOCKED / Claude NOT_RUN</b>", style_table_cell), Paragraph("14", style_table_cell), Paragraph("10.1%", style_table_cell), Paragraph("Gemini tested under post-mitigation; Claude not executed in that batch.", style_table_cell)],
         [Paragraph("<b>Claude SUCCEEDED / Gemini NOT_RUN</b>", style_table_cell), Paragraph("14", style_table_cell), Paragraph("10.1%", style_table_cell), Paragraph("Claude tested in unmitigated baseline (vulnerable); Gemini not executed.", style_table_cell)],
         [Paragraph("<b>Both NOT_RUN</b>", style_table_cell), Paragraph("14", style_table_cell), Paragraph("10.1%", style_table_cell), Paragraph("Interactive live tests without credentials; neither model called.", style_table_cell)],
-        [Paragraph("<b>TOTAL COMPARISON PAIRS</b>", style_table_cell), Paragraph("<b>138</b>", style_table_cell), Paragraph("<b>100.0%</b>", style_table_cell), Paragraph("Factual audit eliminates false superiority claims.", style_table_cell)],
+        [Paragraph("<b>TOTAL COMPARISON RECORDS</b>", style_table_cell), Paragraph("<b>138</b>", style_table_cell), Paragraph("<b>100.0%</b>", style_table_cell), Paragraph("138 comparison records (26 paired executions, 112 single/unexecuted).", style_table_cell)],
     ]
     t_fcomp = Table(factual_comp_data, colWidths=[164, 45, 55, 240])
     t_fcomp.setStyle(TableStyle([
@@ -518,7 +518,9 @@ def build_pdf_report():
     story.append(t_dist)
     story.append(Spacer(1, 4))
 
-    story.append(Paragraph("<b>7.2 Stage Resilience &amp; Mitigation Improvement:</b> Baseline block rate is <b>84.3%</b> (118 / 140) and Post-mitigation block rate is <b>92.4%</b> (597 / 646), yielding an overall mitigation improvement of <b>+8.1 percentage points</b>. Across high-risk vectors (LLM02, ASI01, ASI03, ASI05, ASI06), mitigation achieved complete breach elimination (0 post-mitigation breaches).", style_body))
+    story.append(Paragraph("<b>7.2 Dual-Metric Stage Resilience &amp; Mitigation Improvement:</b><br/>"
+                           "&bull; <b>Evaluable-Outcome Block Rate:</b> Baseline is <b>84.3%</b> (118/140) &rarr; Post-mitigation is <b>100.0%</b> (597/597), yielding an improvement of <b>+15.7 percentage points</b> (excludes 24 ERROR and 25 NOT_RUN from denominator).<br/>"
+                           "&bull; <b>All-Record Blocked Share:</b> Baseline is <b>84.3%</b> (118/140) &rarr; Post-mitigation is <b>92.4%</b> (597/646), yielding a difference of <b>+8.1 percentage points</b> (all 646 records in denominator). Zero post-mitigation breaches observed across all tested vectors.", style_body))
 
     story.append(Paragraph("<b>7.3 OWASP Risk Mitigation Breakdown:</b>", style_h2))
 

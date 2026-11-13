@@ -341,8 +341,9 @@ To run individual phase test suites:
 
 ---
 
-## 16. Evaluation Instructions
+## 16. Evaluation Instructions & Empirical Results
 
+### Evaluation Steps
 1. Start both backend and frontend servers.
 2. In the application navigation pill, select **📊 Evaluation**.
 3. Choose evaluation mode (**Mock Mode** for safe offline testing or **Live Mode** if keys are provided).
@@ -350,6 +351,29 @@ To run individual phase test suites:
 5. Click **▶ Run Evaluation Matrix**.
 6. Inspect the generated comparative resilience cards, scenario matrix table, and comparative verdicts.
 7. Click **📥 Export CSV** to download `ai_security_evaluation_results.csv`.
+
+### Empirical Dataset & Dual-Metric Evaluation Telemetry
+The canonical SQLite database (`ai_security_poc.db`, 2.42 MB) stores **786 physical execution records**:
+
+| Metric | Baseline | Post-Mitigation | Net Delta | Methodology Notes |
+| :--- | :---: | :---: | :---: | :--- |
+| **Evaluable-Outcome Block Rate** | **84.3%** (118/140) | **100.0%** (597/597) | **+15.7 pp** | $\frac{\text{BLOCKED}}{\text{BLOCKED} + \text{SUCCEEDED}} \times 100$. Strictly excludes simulated test faults (24 ERROR) and unauthenticated calls (25 NOT_RUN) from denominator. |
+| **All-Record Blocked Share** | **84.3%** (118/140) | **92.4%** (597/646) | **+8.1 pp** | $\frac{\text{BLOCKED}}{\text{All Execution Records}} \times 100$. Denominator includes all 646 post-mitigation records (counting 24 ERROR and 25 NOT_RUN). |
+
+### Matrix Coverage Disclosure (40 / 120 Unique Cells)
+- **Planned Matrix Capacity:** 30 Scenarios $\times$ 2 Providers $\times$ 2 Defense Stages = 120 combinations.
+- **Actual Unique Cells Executed:** **40 / 120 (33.3% cell coverage)** across 29 distinct scenarios (`LLM08-02` omitted).
+- **80 Cells Unexecuted:** Primarily Gemini Baseline and selective Claude baseline cells.
+- **Statistical Replication:** The 786 physical records represent repeated regression & batch tests across the 40 unique cells (~19.6 runs/cell).
+
+### Model Comparison Telemetry (138 Records; 26 Paired Executions)
+The 138 rows in `model_comparisons` represent comparison records rather than 138 complete simultaneous paired executions:
+- **Both BLOCKED (Paired Executions):** **26 records** (18.8%) — both models executed concurrently on LLM08-01 and LLM03-01; both successfully contained.
+- **Claude BLOCKED / Gemini NOT_RUN:** **70 records** (50.7%) — Claude evaluated under post-mitigation; Gemini was not executed in that batch.
+- **Gemini BLOCKED / Claude NOT_RUN:** **14 records** (10.1%) — Gemini evaluated under post-mitigation; Claude was not executed in that batch.
+- **Claude SUCCEEDED / Gemini NOT_RUN:** **14 records** (10.1%) — Claude evaluated in unmitigated baseline (vulnerable); Gemini was not executed.
+- **Both NOT_RUN:** **14 records** (10.1%) — Interactive live tests without API keys; neither model called.
+- **Zero False Superiority Claims:** When one model is NOT_RUN, no superiority is asserted.
 
 ---
 
@@ -422,7 +446,7 @@ All attack scenarios, synthetic canary markers, and adversarial prompts generate
 The final submission package is consolidated in `submission/` and verified against empirical test records:
 
 1. **Formal Evaluation Report:** [`submission/AI_Security_Testing_Evaluation_Report.pdf`](submission/AI_Security_Testing_Evaluation_Report.pdf) (Strictly 10 pages, complete technical documentation, empirical telemetry, zero biased superiority claims).
-2. **Evaluation Results Workbook:** [`submission/AI_Security_Test_Results.xlsx`](submission/AI_Security_Test_Results.xlsx) (Corporate-styled multi-sheet Excel workbook with 4 sheets: Attack Results [787 rows], Risk Summary [11 rows], Model Comparison [139 rows], and Execution Summary [21 rows]).
+2. **Evaluation Results Workbook:** [`submission/AI_Security_Test_Results.xlsx`](submission/AI_Security_Test_Results.xlsx) (Corporate-styled multi-sheet Excel workbook with 4 sheets: Attack Results [787 rows], Risk Summary [11 rows], Model Comparison [139 rows], and Execution Summary [25 rows]).
 3. **Comprehensive Evidence Folder:** [`submission/evidence/`](submission/evidence/) (RFC CSV exports, high-resolution application screenshots, full automated test suite logs, and production build verification).
 4. **Submission Checklist:** [`submission/SUBMISSION_CHECKLIST.md`](submission/SUBMISSION_CHECKLIST.md) (Complete deliverable verification and integrity audit).
 

@@ -17,7 +17,7 @@
 | **README.md** | Project Root (`README.md`) | Comprehensive documentation audit | **PASS** | Complete 23-section documentation with setup, architecture, and API. |
 | **Source Code** | `backend/`, `frontend/`, `tests/` | Static inspection & compilation | **PASS** | FastAPI backend, React 19 frontend, SQLite models, 30 scenarios. |
 | **PDF Evaluation Report** | `submission/AI_Security_Testing_Evaluation_Report.pdf` | ReportLab build & page-count audit | **PASS** | Exactly 10 pages; verified non-fabricated metrics, zero superiority claims. |
-| **Excel Test Results** | `submission/AI_Security_Test_Results.xlsx` | openpyxl audit & formula validation | **PASS** | Exactly 4 sheets (787 rows Sheet 1, 11 rows Sheet 2, 139 rows Sheet 3, 21 rows Sheet 4). |
+| **Excel Test Results** | `submission/AI_Security_Test_Results.xlsx` | openpyxl audit & formula validation | **PASS** | Exactly 4 sheets (787 rows Sheet 1, 11 rows Sheet 2, 139 rows Sheet 3, 25 rows Sheet 4 with dual metrics). |
 | **Evidence & Screenshots** | `submission/evidence/` | File existence & schema validation | **PASS** | 4 CSV exports, UI screenshots, build logs, and sample attack traces. |
 | **Demonstration Video** | External Shareable Link | Video walkthrough preparation | **PASS** | Provided via external shareable drive/cloud link per instructions. |
 | **Test Verification** | `tests/`, Pytest & Frontend Build | Build & regression check | **PASS** | Vite production build verified (0 errors), 99 automated test cases. |
@@ -45,3 +45,4 @@
 - **Organization:** YGF NGO
 - **Submission Repository:** `https://github.com/mayanksinha17/AI-Security-Testing-Evaluation-Framework`
 - **Submission Branch:** `main`
+
