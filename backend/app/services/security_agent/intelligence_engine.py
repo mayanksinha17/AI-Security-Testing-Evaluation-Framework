@@ -1,0 +1,27 @@
+"""Re-export of Dynamic Security Intelligence Engine (Phase E1)."""
+
+from app.security_agent.intelligence_engine import (
+    COLD_START_BASE_PRIORS,
+    ELIGIBLE_EVIDENCE_TRUST_LEVELS,
+    MINIMUM_SAMPLE_SIZE_THRESHOLD,
+    SECURITY_REJECTION_MARKERS,
+    SEVERITY_WEIGHTS,
+    WEIGHT_ENDPOINT,
+    WEIGHT_HISTORICAL,
+    WEIGHT_PREREQUISITE,
+    WEIGHT_SEVERITY,
+    DynamicSecurityIntelligenceEngine,
+)
+
+__all__ = [
+    "DynamicSecurityIntelligenceEngine",
+    "MINIMUM_SAMPLE_SIZE_THRESHOLD",
+    "COLD_START_BASE_PRIORS",
+    "SEVERITY_WEIGHTS",
+    "WEIGHT_SEVERITY",
+    "WEIGHT_HISTORICAL",
+    "WEIGHT_ENDPOINT",
+    "WEIGHT_PREREQUISITE",
+    "ELIGIBLE_EVIDENCE_TRUST_LEVELS",
+    "SECURITY_REJECTION_MARKERS",
+]

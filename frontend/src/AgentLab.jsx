@@ -54,6 +54,9 @@ const AGENT_STARTERS = [
 ];
 
 export default function AgentLab({ backendHealth, models }) {
+  const claudeModel = models?.find((m) => m.id === "claude")?.model || "claude-sonnet-5";
+  const geminiModel = models?.find((m) => m.id === "gemini")?.model || "gemini-3.8-flash";
+
   const [selectedProvider, setSelectedProvider] = useState("claude");
   const [selectedRole, setSelectedRole] = useState("analyst");
   const [sessionId, setSessionId] = useState(null);
@@ -325,14 +328,14 @@ export default function AgentLab({ backendHealth, models }) {
                 onClick={() => setSelectedProvider("claude")}
                 disabled={isLoading}
               >
-                Claude (claude-sonnet-5-5)
+                Claude ({claudeModel})
               </button>
               <button
                 className={`model-option ${selectedProvider === "gemini" ? "active" : ""}`}
                 onClick={() => setSelectedProvider("gemini")}
                 disabled={isLoading}
               >
-                Gemini (gemini-3.8-flash)
+                Gemini ({geminiModel})
               </button>
             </div>
           </div>

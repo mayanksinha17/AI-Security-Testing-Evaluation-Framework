@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import AgentLab from "./AgentLab";
 import AttackLab from "./AttackLab";
 import EvaluationDashboard from "./EvaluationDashboard";
+import SecurityAgentLab from "./SecurityAgentLab";
 import SecurityDashboard from "./SecurityDashboard";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
@@ -214,7 +215,7 @@ export default function App() {
 
   const selectedModel = models.find((m) => m.id === selectedProvider) || {
     name: selectedProvider === "claude" ? "Anthropic Claude" : "Google Gemini",
-    model: selectedProvider === "claude" ? "claude-sonnet-5-5" : "gemini-3.8-flash",
+    model: selectedProvider === "claude" ? (claudeInfo?.model || "claude-sonnet-5") : (geminiInfo?.model || "gemini-3.8-flash"),
     execution_mode: backendHealth.mode || "mock",
   };
 
@@ -268,6 +269,15 @@ export default function App() {
               }}
             >
               🤖 Agent
+            </button>
+            <button
+              className={`nav-tab-btn ${currentTab === "security-agent" ? "active" : ""}`}
+              onClick={() => {
+                setCurrentTab("security-agent");
+                setSidebarOpen(false);
+              }}
+            >
+              🛡️ Security Agent
             </button>
             <button
               className={`nav-tab-btn ${currentTab === "chatbot" ? "active" : ""}`}
@@ -365,7 +375,7 @@ export default function App() {
                 >
                   <span className="provider-icon anthropic">●</span>
                   <span>Claude</span>
-                  <span className="model-tag">{claudeInfo?.model || "claude-sonnet-5-5"}</span>
+                  <span className="model-tag">{claudeInfo?.model || "claude-sonnet-5"}</span>
                 </button>
                 <button
                   className={`model-option ${selectedProvider === "gemini" ? "active" : ""}`}
@@ -382,7 +392,9 @@ export default function App() {
 
           <div className="topbar-right">
             <span className="phase-pill">
-              {currentTab === "attack"
+              {currentTab === "security-agent"
+                ? "PHASE C · ADAPTIVE SECURITY AGENT"
+                : currentTab === "attack"
                 ? "PHASE 04 · ATTACK ENGINE"
                 : currentTab === "agent"
                 ? "PHASE 03 · AGENTIC AI"
@@ -407,6 +419,8 @@ export default function App() {
           <AttackLab backendHealth={backendHealth} models={models} />
         ) : currentTab === "agent" ? (
           <AgentLab backendHealth={backendHealth} models={models} />
+        ) : currentTab === "security-agent" ? (
+          <SecurityAgentLab backendHealth={backendHealth} models={models} />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", height: "calc(100% - 64px)", width: "100%" }}>
             {/* Error notification banner */}

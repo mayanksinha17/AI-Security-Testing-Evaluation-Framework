@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 export default function AttackLab({ backendHealth, models }) {
+  // Resolve model metadata from backend /api/models with authoritative fallbacks
+  const claudeModel = models?.find((m) => m.id === "claude")?.model || "claude-sonnet-5";
+  const geminiModel = models?.find((m) => m.id === "gemini")?.model || "gemini-3.8-flash";
+
   // Config & State
   const [selectedProvider, setSelectedProvider] = useState("claude");
   const [selectedStage, setSelectedStage] = useState("BASELINE"); // "BASELINE" | "POST_MITIGATION"
@@ -15,6 +19,12 @@ export default function AttackLab({ backendHealth, models }) {
   const [resultsMap, setResultsMap] = useState({}); // scenario_id -> latest result
   const [summary, setSummary] = useState(null);
   const [historyRuns, setHistoryRuns] = useState([]);
+  const [latestBatchResult, setLatestBatchResult] = useState(null);
+
+  // Export state
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isDownloadingCsv, setIsDownloadingCsv] = useState(false);
+  const [exportError, setExportError] = useState(null);
 
   // UI state
   const [isRunningAll, setIsRunningAll] = useState(false);
@@ -96,6 +106,7 @@ export default function AttackLab({ backendHealth, models }) {
       const payload = {
         scenario_id: scenarioId,
         provider: selectedProvider,
+        model: selectedProvider === "claude" ? claudeModel : geminiModel,
         stage: selectedStage,
         role: selectedRole,
       };
@@ -121,15 +132,22 @@ export default function AttackLab({ backendHealth, models }) {
     }
   };
 
-  const handleRunBatch = async (riskIdFilter = null) => {
+  const handleRunBatch = async (explicitRiskFilter = undefined) => {
     if (isRunningAll || runningScenarioId) return;
     setIsRunningAll(true);
     setErrorMessage("");
+    setExportError(null);
+    const startTime = Date.now();
+
+    const targetRiskId = explicitRiskFilter !== undefined
+      ? explicitRiskFilter
+      : (activeRiskFilter !== "ALL" ? activeRiskFilter : null);
 
     try {
       const payload = {
-        risk_id: riskIdFilter || (activeRiskFilter !== "ALL" ? activeRiskFilter : null),
+        risk_id: targetRiskId,
         provider: selectedProvider,
+        model: selectedProvider === "claude" ? claudeModel : geminiModel,
         stage: selectedStage,
         role: selectedRole,
       };
@@ -152,11 +170,117 @@ export default function AttackLab({ backendHealth, models }) {
         newMap[r.scenario_id] = r;
       }
       setResultsMap(newMap);
-      refreshSummary();
+
+      // Duration calculation
+      const totalLatency = runResponse.results?.reduce((sum, r) => sum + (r.latency_ms || 0), 0) || 0;
+      const durationMs = runResponse.duration_ms || Math.round(totalLatency) || (Date.now() - startTime);
+
+      const executedCount = runResponse.results ? runResponse.results.length : runResponse.total_scenarios;
+      const blocked = runResponse.blocked_count;
+      const partial = runResponse.partial_count;
+      const succeeded = runResponse.succeeded_count;
+      const errorCount = runResponse.error_count;
+
+      // Consolidated risk-level verdict
+      let verdict = "INCONCLUSIVE";
+      let verdictClass = "badge-pending";
+      let verdictDescription = "Batch execution returned inconclusive or error results.";
+
+      if (succeeded > 0) {
+        verdict = "VULNERABLE (EXPOSURE DETECTED)";
+        verdictClass = "badge-denied";
+        verdictDescription = `${succeeded} of ${executedCount} attacks succeeded in bypassing defenses.`;
+      } else if (partial > 0) {
+        verdict = "PARTIALLY MITIGATED (RESIDUAL RISK)";
+        verdictClass = "badge-pending";
+        verdictDescription = `${partial} attacks caused partial exposure or warning conditions.`;
+      } else if (blocked === executedCount && executedCount > 0) {
+        verdict = "SECURED (ALL ATTACKS BLOCKED)";
+        verdictClass = "badge-success";
+        verdictDescription = `All ${blocked} attack scenarios were successfully intercepted by guardrails.`;
+      }
+
+      setLatestBatchResult({
+        runId: runResponse.id,
+        riskId: targetRiskId || "ALL",
+        totalScenarios: runResponse.total_scenarios,
+        executedScenarios: executedCount,
+        blockedCount: blocked,
+        partialCount: partial,
+        succeededCount: succeeded,
+        errorCount: errorCount,
+        durationMs: durationMs,
+        stage: runResponse.stage,
+        provider: runResponse.provider,
+        model: runResponse.model,
+        executionMode: runResponse.execution_mode,
+        verdict,
+        verdictClass,
+        verdictDescription,
+        executedAt: new Date().toLocaleTimeString(),
+      });
+
+      await refreshSummary();
     } catch (err) {
       setErrorMessage(err.message || "Failed to execute batch attack.");
     } finally {
       setIsRunningAll(false);
+    }
+  };
+
+  const handleDownloadExport = async (format) => {
+    if (!latestBatchResult || !latestBatchResult.runId) {
+      setExportError("No active batch execution run ID available to export.");
+      return;
+    }
+
+    setExportError(null);
+    const isPdf = format === "pdf";
+    if (isPdf) setIsDownloadingPdf(true);
+    else setIsDownloadingCsv(true);
+
+    try {
+      const url = `${API_BASE}/api/attacks/runs/${latestBatchResult.runId}/export/${format}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        let detail = `Failed to generate ${format.toUpperCase()} export (HTTP ${response.status})`;
+        try {
+          const errorJson = await response.json();
+          if (errorJson.detail) detail = errorJson.detail;
+        } catch (e) {}
+        throw new Error(detail);
+      }
+
+      const blob = await response.blob();
+      let filename = "";
+      const disposition = response.headers.get("content-disposition");
+      if (disposition && disposition.includes("filename=")) {
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+      if (!filename) {
+        const riskLabel = latestBatchResult.riskId || "Batch";
+        filename = isPdf
+          ? `ApexShield_${riskLabel}_Assessment_${latestBatchResult.runId}.pdf`
+          : `ApexShield_${riskLabel}_Results_${latestBatchResult.runId}.csv`;
+      }
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error(`Export download error (${format}):`, err);
+      setExportError(err.message || `Failed to download ${format.toUpperCase()}`);
+    } finally {
+      if (isPdf) setIsDownloadingPdf(false);
+      else setIsDownloadingCsv(false);
     }
   };
 
@@ -189,6 +313,17 @@ export default function AttackLab({ backendHealth, models }) {
     ? summary?.baseline_stats
     : summary?.post_mitigation_stats;
 
+  const riskResults = filteredScenarios.map((sc) => resultsMap[sc.scenario_id]).filter(Boolean);
+  const riskStats = {
+    executed: riskResults.length,
+    blocked: riskResults.filter((r) => r.result_classification === "BLOCKED").length,
+    partial: riskResults.filter((r) => r.result_classification === "PARTIAL").length,
+    succeeded: riskResults.filter((r) => r.result_classification === "SUCCEEDED").length,
+    blockRatePercent: riskResults.length > 0
+      ? Math.round((riskResults.filter((r) => r.result_classification === "BLOCKED").length / riskResults.length) * 100)
+      : 0,
+  };
+
   return (
     <div className="attack-container">
       {/* Top Header / Subbar */}
@@ -202,14 +337,14 @@ export default function AttackLab({ backendHealth, models }) {
                 onClick={() => setSelectedProvider("claude")}
                 disabled={isRunningAll || runningScenarioId}
               >
-                Claude (claude-sonnet-5-5)
+                Claude ({claudeModel})
               </button>
               <button
                 className={`model-option ${selectedProvider === "gemini" ? "active" : ""}`}
                 onClick={() => setSelectedProvider("gemini")}
                 disabled={isRunningAll || runningScenarioId}
               >
-                Gemini (gemini-3.8-flash)
+                Gemini ({geminiModel})
               </button>
             </div>
           </div>
@@ -252,10 +387,12 @@ export default function AttackLab({ backendHealth, models }) {
         <div className="subbar-actions">
           <button
             className="btn-batch-run"
-            onClick={() => handleRunBatch()}
+            onClick={() => handleRunBatch(activeRiskFilter === "ALL" ? null : activeRiskFilter)}
             disabled={isRunningAll || runningScenarioId}
           >
-            {isRunningAll ? "⏳ Running Batch..." : "⚡ Run All 30 Attacks"}
+            {isRunningAll
+              ? (activeRiskFilter === "ALL" ? "⏳ Running All 30 Attacks..." : `⏳ Running All 3 ${activeRiskFilter} Scenarios...`)
+              : (activeRiskFilter === "ALL" ? "⚡ Run All 30 Attacks" : `⚡ Run All 3 ${activeRiskFilter} Scenarios`)}
           </button>
           <button className="reset-btn" onClick={refreshSummary} title="Refresh Summary">
             ↺ Refresh
@@ -277,8 +414,10 @@ export default function AttackLab({ backendHealth, models }) {
       <div className="attack-metrics-strip">
         <div className="metric-box">
           <span className="metric-label">TOTAL SCENARIOS</span>
-          <span className="metric-value">30</span>
-          <span className="metric-sub">10 OWASP Risks (3 each)</span>
+          <span className="metric-value">{activeRiskFilter === "ALL" ? 30 : filteredScenarios.length}</span>
+          <span className="metric-sub">
+            {activeRiskFilter === "ALL" ? "10 OWASP Risks (3 each)" : `${filteredScenarios.length} Scenarios in ${activeRiskFilter}`}
+          </span>
         </div>
         <div className="metric-box">
           <span className="metric-label">STAGE</span>
@@ -287,20 +426,36 @@ export default function AttackLab({ backendHealth, models }) {
         </div>
         <div className="metric-box">
           <span className="metric-label">TESTS EXECUTED</span>
-          <span className="metric-value">{currentStageStats?.total || 0}</span>
-          <span className="metric-sub">Recorded in SQLite</span>
+          <span className="metric-value">
+            {activeRiskFilter === "ALL" ? (currentStageStats?.total || 0) : riskStats.executed}
+          </span>
+          <span className="metric-sub">
+            {activeRiskFilter === "ALL" ? "Recorded in SQLite" : `${riskStats.executed} of ${filteredScenarios.length} executed`}
+          </span>
         </div>
         <div className="metric-box">
           <span className="metric-label">DEFENSE BLOCK RATE</span>
-          <span className="metric-value highlight">{currentStageStats?.block_rate_percent || 0}%</span>
-          <span className="metric-sub">{currentStageStats?.blocked || 0} Blocked / {currentStageStats?.total || 0}</span>
+          <span className="metric-value highlight">
+            {activeRiskFilter === "ALL" ? (currentStageStats?.block_rate_percent || 0) : riskStats.blockRatePercent}%
+          </span>
+          <span className="metric-sub">
+            {activeRiskFilter === "ALL"
+              ? `${currentStageStats?.blocked || 0} Blocked / ${currentStageStats?.total || 0}`
+              : `${riskStats.blocked} Blocked / ${riskStats.executed}`}
+          </span>
         </div>
         <div className="metric-box counts-box">
           <span className="metric-label">OUTCOME BREAKDOWN</span>
           <div className="breakdown-pills">
-            <span className="pill-blocked">🛡️ {currentStageStats?.blocked || 0} BLOCKED</span>
-            <span className="pill-partial">⚠️ {currentStageStats?.partial || 0} PARTIAL</span>
-            <span className="pill-succeeded">❌ {currentStageStats?.succeeded || 0} SUCCEEDED</span>
+            <span className="pill-blocked">
+              🛡️ {activeRiskFilter === "ALL" ? (currentStageStats?.blocked || 0) : riskStats.blocked} BLOCKED
+            </span>
+            <span className="pill-partial">
+              ⚠️ {activeRiskFilter === "ALL" ? (currentStageStats?.partial || 0) : riskStats.partial} PARTIAL
+            </span>
+            <span className="pill-succeeded">
+              ❌ {activeRiskFilter === "ALL" ? (currentStageStats?.succeeded || 0) : riskStats.succeeded} SUCCEEDED
+            </span>
           </div>
         </div>
       </div>
@@ -368,16 +523,95 @@ export default function AttackLab({ backendHealth, models }) {
               </span>
             </div>
 
-            {activeRiskFilter !== "ALL" && (
-              <button
-                className="btn-batch-risk"
-                onClick={() => handleRunBatch(activeRiskFilter)}
-                disabled={isRunningAll || runningScenarioId}
-              >
-                ▶ Run All 3 {activeRiskFilter} Scenarios
-              </button>
-            )}
+            <button
+              className="btn-batch-risk"
+              onClick={() => handleRunBatch(activeRiskFilter === "ALL" ? null : activeRiskFilter)}
+              disabled={isRunningAll || runningScenarioId}
+            >
+              {isRunningAll
+                ? (activeRiskFilter === "ALL" ? "⏳ Running 30 Attacks..." : `⏳ Running ${activeRiskFilter}...`)
+                : (activeRiskFilter === "ALL" ? "⚡ Run All 30 Attacks" : `▶ Run All 3 ${activeRiskFilter} Scenarios`)}
+            </button>
           </div>
+
+          {latestBatchResult && (latestBatchResult.riskId === activeRiskFilter || activeRiskFilter === "ALL" || latestBatchResult.riskId === "ALL") && (
+            <div className="consolidated-result-card">
+              <div className="consolidated-card-header">
+                <div className="consolidated-header-left">
+                  <span className="consolidated-badge-label">CONSOLIDATED BATCH RESULT</span>
+                  <h4 className="consolidated-risk-heading">
+                    {latestBatchResult.riskId === "ALL" ? "All 10 OWASP Risks (30 Scenarios)" : `${latestBatchResult.riskId} Assessment`}
+                  </h4>
+                  <span className="consolidated-meta">
+                    Stage: <b>{latestBatchResult.stage}</b> · Target: <b>{latestBatchResult.provider.toUpperCase()}</b> ({latestBatchResult.model}) · Duration: <b>{latestBatchResult.durationMs}ms</b> · Completed at {latestBatchResult.executedAt}
+                  </span>
+                </div>
+                <div className="consolidated-header-right">
+                  <div className="consolidated-badges-row">
+                    <span className={`status-badge ${latestBatchResult.verdictClass} large-verdict`}>
+                      {latestBatchResult.verdict}
+                    </span>
+                    <span className={`mode-badge ${latestBatchResult.executionMode === "live" ? "badge-live" : "badge-mock"}`}>
+                      {latestBatchResult.executionMode === "live" ? "🟢 LIVE API" : "🧪 MOCK MODE (SYNTHETIC)"}
+                    </span>
+                  </div>
+                  <div className="consolidated-download-actions">
+                    <button
+                      className="btn-batch-download btn-download-pdf"
+                      onClick={() => handleDownloadExport("pdf")}
+                      disabled={isDownloadingPdf || isDownloadingCsv}
+                      title="Download complete assessment report as PDF"
+                    >
+                      {isDownloadingPdf ? "⏳ Generating PDF..." : "📄 Download PDF"}
+                    </button>
+                    <button
+                      className="btn-batch-download btn-download-csv"
+                      onClick={() => handleDownloadExport("csv")}
+                      disabled={isDownloadingPdf || isDownloadingCsv}
+                      title="Download scenario results as CSV"
+                    >
+                      {isDownloadingCsv ? "⏳ Generating CSV..." : "📊 Download CSV"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {exportError && (
+                <div className="batch-export-error">
+                  ⚠️ {exportError}
+                </div>
+              )}
+
+              <p className="consolidated-verdict-desc">{latestBatchResult.verdictDescription}</p>
+
+              <div className="consolidated-metrics-grid">
+                <div className="consolidated-stat-box">
+                  <span className="stat-title">TOTAL SCENARIOS</span>
+                  <span className="stat-num">{latestBatchResult.totalScenarios}</span>
+                </div>
+                <div className="consolidated-stat-box">
+                  <span className="stat-title">EXECUTED</span>
+                  <span className="stat-num">{latestBatchResult.executedScenarios}</span>
+                </div>
+                <div className="consolidated-stat-box stat-success">
+                  <span className="stat-title">🛡️ BLOCKED</span>
+                  <span className="stat-num highlight-green">{latestBatchResult.blockedCount}</span>
+                </div>
+                <div className="consolidated-stat-box stat-warning">
+                  <span className="stat-title">⚠️ PARTIAL</span>
+                  <span className="stat-num highlight-yellow">{latestBatchResult.partialCount}</span>
+                </div>
+                <div className="consolidated-stat-box stat-danger">
+                  <span className="stat-title">❌ SUCCEEDED</span>
+                  <span className="stat-num highlight-red">{latestBatchResult.succeededCount}</span>
+                </div>
+                <div className="consolidated-stat-box">
+                  <span className="stat-title">DURATION</span>
+                  <span className="stat-num">{latestBatchResult.durationMs}ms</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="scenarios-grid">
             {filteredScenarios.map((sc) => {

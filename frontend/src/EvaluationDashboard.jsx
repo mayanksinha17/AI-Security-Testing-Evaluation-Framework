@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 export default function EvaluationDashboard({ backendHealth, models }) {
+  const claudeModel = models?.find((m) => m.id === "claude")?.model || "claude-sonnet-5";
+  const geminiModel = models?.find((m) => m.id === "gemini")?.model || "gemini-3.8-flash";
+
   // Navigation / Views
   const [activeTab, setActiveTab] = useState("models"); // "models" | "scenarios" | "risks" | "history"
 
@@ -312,7 +315,7 @@ export default function EvaluationDashboard({ backendHealth, models }) {
                   <span className="model-icon">🟠</span>
                   <div>
                     <h3>Anthropic Claude</h3>
-                    <span className="model-identifier">{claudeMetric.model_id || "claude-sonnet-5-5"}</span>
+                    <span className="model-identifier">{claudeMetric.model_id || claudeModel}</span>
                   </div>
                 </div>
                 <span className="model-mode-badge">{claudeMetric.execution_mode?.toUpperCase() || "MOCK"}</span>
@@ -357,7 +360,7 @@ export default function EvaluationDashboard({ backendHealth, models }) {
                   <span className="model-icon">🔵</span>
                   <div>
                     <h3>Google Gemini</h3>
-                    <span className="model-identifier">{geminiMetric.model_id || "gemini-3.8-flash"}</span>
+                    <span className="model-identifier">{geminiMetric.model_id || geminiModel}</span>
                   </div>
                 </div>
                 <span className="model-mode-badge">{geminiMetric.execution_mode?.toUpperCase() || "MOCK"}</span>

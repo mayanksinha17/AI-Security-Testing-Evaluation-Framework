@@ -1789,6 +1789,210 @@ body {
   color: var(--text-muted);
 }
 
+/* Consolidated Batch Result Card */
+.consolidated-result-card {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid var(--accent-primary);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+}
+
+.consolidated-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.consolidated-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.consolidated-badge-label {
+  font: 10px 'DM Mono', monospace;
+  font-weight: 700;
+  color: var(--accent-primary);
+  letter-spacing: 0.5px;
+}
+
+.consolidated-risk-heading {
+  font: 16px 'Inter', sans-serif;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.consolidated-meta {
+  font: 11px 'DM Mono', monospace;
+  color: var(--text-muted);
+}
+
+.consolidated-meta b {
+  color: #cbd5e1;
+}
+
+.consolidated-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.consolidated-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.consolidated-download-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-batch-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: 11px 'DM Mono', monospace;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-batch-download:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-download-pdf {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.45);
+}
+
+.btn-download-pdf:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.3);
+  color: #ffffff;
+  border-color: #818cf8;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.35);
+}
+
+.btn-download-csv {
+  background: rgba(14, 165, 233, 0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(14, 165, 233, 0.45);
+}
+
+.btn-download-csv:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.3);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.35);
+}
+
+.batch-export-error {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  border-radius: 6px;
+  color: #fca5a5;
+  font: 11px 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.large-verdict {
+  font-size: 11px !important;
+  padding: 4px 12px !important;
+}
+
+.mode-badge {
+  font: 10px 'DM Mono', monospace;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.mode-badge.badge-mock {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.mode-badge.badge-live {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.consolidated-verdict-desc {
+  font: 12px 'Inter', sans-serif;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.consolidated-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.consolidated-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.consolidated-stat-box .stat-title {
+  font: 9px 'DM Mono', monospace;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.consolidated-stat-box .stat-num {
+  font: 15px 'DM Mono', monospace;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.highlight-green {
+  color: #34d399 !important;
+}
+
+.highlight-yellow {
+  color: #fbbf24 !important;
+}
+
+.highlight-red {
+  color: #f87171 !important;
+}
+
 .scenarios-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));

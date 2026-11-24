@@ -25,7 +25,13 @@ class Base(DeclarativeBase):
 def init_db() -> None:
     # Import models so they are registered on Base before create_all
     import app.database.models  # noqa: F401
+    import app.security_agent.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
+    app.security_agent.models.migrate_phase_c_schema(engine)
+    app.security_agent.models.migrate_phase_e4_schema(engine)
+    app.security_agent.models.migrate_phase_e5_schema(engine)
+    app.security_agent.models.migrate_phase_e6_schema(engine)
+    app.security_agent.models.migrate_phase_e7_schema(engine)
 
     # Initialize minimal schema_version metadata table (ensures SQLite disk allocation & version tracking)
     with engine.begin() as conn:

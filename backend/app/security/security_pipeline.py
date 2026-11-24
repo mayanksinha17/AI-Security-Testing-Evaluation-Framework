@@ -57,7 +57,7 @@ class SecurityPipeline:
         security_decision: str,
         reason: str,
         provider: str = "claude",
-        model: str = "claude-sonnet-5-5",
+        model: str = "claude-sonnet-5",
         scenario_id: Optional[str] = None,
         execution_ref: Optional[str] = None,
     ) -> SecurityAuditLog:
@@ -90,7 +90,7 @@ class SecurityPipeline:
         role: str = "analyst",
         stage: str = "BASELINE",
         provider: str = "claude",
-        model: str = "claude-sonnet-5-5",
+        model: str = "claude-sonnet-5",
         scenario_id: Optional[str] = None,
         db: Optional[Session] = None,
     ) -> PipelineInboundResult:
@@ -172,7 +172,7 @@ class SecurityPipeline:
         response_text: str,
         stage: str = "BASELINE",
         provider: str = "claude",
-        model: str = "claude-sonnet-5-5",
+        model: str = "claude-sonnet-5",
         scenario_id: Optional[str] = None,
         db: Optional[Session] = None,
     ) -> PipelineOutboundResult:

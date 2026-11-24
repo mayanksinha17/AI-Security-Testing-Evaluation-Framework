@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 export default function SecurityDashboard({ backendHealth, models, onNavigateTab }) {
+  const claudeModel = models?.find((m) => m.id === "claude")?.model || "claude-sonnet-5";
+  const geminiModel = models?.find((m) => m.id === "gemini")?.model || "gemini-3.8-flash";
+
   // Navigation inside SecOps Dashboard
   const [activeSection, setActiveSection] = useState("overview"); // "overview" | "risks" | "audit" | "exports"
 
@@ -372,7 +375,7 @@ export default function SecurityDashboard({ backendHealth, models, onNavigateTab
               <div className="model-sec-header">
                 <div>
                   <span className="model-brand-name">🟠 Anthropic Claude</span>
-                  <span className="model-sub-id">{claudeAnalytics.model_id || "claude-sonnet-5-5"}</span>
+                  <span className="model-sub-id">{claudeAnalytics.model_id || claudeModel}</span>
                 </div>
                 <span className="metric-badge">{claudeAnalytics.post_block_rate || 0}% Post-Block</span>
               </div>
@@ -390,7 +393,7 @@ export default function SecurityDashboard({ backendHealth, models, onNavigateTab
               <div className="model-sec-header">
                 <div>
                   <span className="model-brand-name">🔵 Google Gemini</span>
-                  <span className="model-sub-id">{geminiAnalytics.model_id || "gemini-3.8-flash"}</span>
+                  <span className="model-sub-id">{geminiAnalytics.model_id || geminiModel}</span>
                 </div>
                 <span className="metric-badge">{geminiAnalytics.post_block_rate || 0}% Post-Block</span>
               </div>

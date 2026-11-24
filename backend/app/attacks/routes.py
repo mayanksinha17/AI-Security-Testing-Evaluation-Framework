@@ -1,10 +1,11 @@
 import json
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.attacks.engine import AttackTestingEngine
+from app.attacks.export import generate_batch_csv, generate_batch_pdf, resolve_risk_info
 from app.attacks.scenarios import (
     get_all_risks,
     get_all_scenarios,
@@ -133,6 +134,7 @@ async def run_batch_attacks(
         )
 
     results_formatted = [_format_result(r) for r in attack_run.results]
+    total_duration = round(sum((r.latency_ms or 0.0) for r in attack_run.results), 2)
     return AttackRunResponse(
         id=attack_run.id,
         provider=attack_run.provider,
@@ -145,6 +147,8 @@ async def run_batch_attacks(
         succeeded_count=attack_run.succeeded_count,
         error_count=attack_run.error_count,
         created_at=attack_run.created_at.isoformat() if attack_run.created_at else "",
+        risk_id=request.risk_id,
+        duration_ms=total_duration,
         results=results_formatted,
     )
 
@@ -197,6 +201,64 @@ def get_run_results(
         error_count=run.error_count,
         created_at=run.created_at.isoformat() if run.created_at else "",
         results=results_formatted,
+    )
+
+
+@router.get("/runs/{run_id}/export/pdf")
+@router.get("/results/{run_id}/export/pdf")
+def export_run_pdf(
+    run_id: str,
+    db: Session = Depends(get_db),
+):
+    """Generates and downloads a professional ReportLab PDF assessment report for a specific AttackRun."""
+    run = db.query(AttackRun).filter(AttackRun.id == run_id).first()
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Attack run '{run_id}' not found.",
+        )
+
+    risk_code, _ = resolve_risk_info(run.results)
+    safe_risk = risk_code.replace(" ", "_")
+    filename = f"ApexShield_{safe_risk}_Assessment_{run.id}.pdf"
+
+    pdf_bytes = generate_batch_pdf(run)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
+    )
+
+
+@router.get("/runs/{run_id}/export/csv")
+@router.get("/results/{run_id}/export/csv")
+def export_run_csv(
+    run_id: str,
+    db: Session = Depends(get_db),
+):
+    """Exports only the scenarios belonging to the selected AttackRun in RFC-4180 CSV format."""
+    run = db.query(AttackRun).filter(AttackRun.id == run_id).first()
+    if not run:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Attack run '{run_id}' not found.",
+        )
+
+    risk_code, _ = resolve_risk_info(run.results)
+    safe_risk = risk_code.replace(" ", "_")
+    filename = f"ApexShield_{safe_risk}_Results_{run.id}.csv"
+
+    csv_data = generate_batch_csv(run)
+    return Response(
+        content=csv_data,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+        },
     )
 
 

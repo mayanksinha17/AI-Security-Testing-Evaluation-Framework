@@ -8,6 +8,8 @@ from app.agent import agent_router
 from app.attacks import attacks_router
 from app.dashboard import dashboard_router
 from app.evaluation import evaluation_router
+from app.security_agent import security_agent_router
+from app.security_agent.target_app import target_app_router
 from app.core.config import settings
 from app.database.session import init_db
 
@@ -39,6 +41,8 @@ app.include_router(agent_router, prefix="/api")
 app.include_router(attacks_router, prefix="/api")
 app.include_router(evaluation_router)
 app.include_router(dashboard_router)
+app.include_router(security_agent_router)
+app.include_router(target_app_router)
 
 
 @app.get("/", tags=["system"])

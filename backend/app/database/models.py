@@ -230,7 +230,7 @@ class EvaluationRun(Base):
     title = Column(String(255), nullable=False, default="Comprehensive AI Security Evaluation")
     status = Column(String(30), nullable=False, default="completed")  # "completed", "running", "failed"
     execution_mode = Column(String(20), nullable=False, default="mock")  # "mock" or "live"
-    claude_model = Column(String(100), nullable=False, default="claude-sonnet-5-5")
+    claude_model = Column(String(100), nullable=False, default="claude-sonnet-5")
     gemini_model = Column(String(100), nullable=False, default="gemini-3.8-flash")
     total_scenarios = Column(Integer, nullable=False, default=30)
     total_executions = Column(Integer, nullable=False, default=0)

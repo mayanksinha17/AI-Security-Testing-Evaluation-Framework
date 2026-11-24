@@ -71,6 +71,8 @@ class AttackRunResponse(BaseModel):
     succeeded_count: int
     error_count: int
     created_at: str
+    risk_id: Optional[str] = None
+    duration_ms: Optional[float] = None
     results: List[AttackResultSchema] = []
 
 
